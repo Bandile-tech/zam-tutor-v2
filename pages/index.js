@@ -1,195 +1,159 @@
-"use client"; // ensures Next.js treats this as a client component
+import { useState, useRef, useEffect } from "react";
+import dynamic from "next/dynamic";
+import ChatSidebar from "../components/ChatSidebar";
+import styles from "../styles/Home.module.css";
 
-import { useState } from "react";
+const PdfHandler = dynamic(() => import("../components/PdfHandler"), { ssr: false });
+const ImageHandler = dynamic(() => import("../components/ImageHandler"), { ssr: false });
 
 export default function Home() {
   const [text, setText] = useState("");
+  const [messages, setMessages] = useState({ General: [] });
+  const [currentTopic, setCurrentTopic] = useState("General");
   const [pdfFile, setPdfFile] = useState(null);
   const [imageFile, setImageFile] = useState(null);
-  const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const chatEndRef = useRef(null);
 
-  // PDF upload handler
-  const handlePdfChange = async (e) => {
-    const file = e.target.files[0];
-    setPdfFile(file);
-    if (!file || file.type !== "application/pdf") {
-      alert("Please upload a valid PDF file.");
-      return;
-    }
+  // Auto-scroll
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, currentTopic]);
 
+  const handleSend = async () => {
+    if (!text.trim()) return;
+
+    const userMessage = { type: "user", content: text };
+    setMessages((prev) => ({
+      ...prev,
+      [currentTopic]: [...(prev[currentTopic] || []), userMessage],
+    }));
+    setText("");
     setLoading(true);
 
-    // Dynamic import to prevent server-side build errors
-    const { getDocument, GlobalWorkerOptions } = await import("pdfjs-dist");
-    GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.12.313/pdf.worker.min.js";
-
-    const reader = new FileReader();
-    reader.onload = async function () {
-      const typedArray = new Uint8Array(this.result);
-      const pdf = await getDocument(typedArray).promise;
-      let pdfText = "";
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const strings = content.items.map((item) => item.str);
-        pdfText += strings.join(" ") + "\n";
-      }
-      setText((prev) => prev + "\n" + pdfText);
-      setLoading(false);
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
-  // Image upload handler
-  const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    setImageFile(file);
-    if (!file || !file.type.startsWith("image/")) {
-      alert("Please upload an image file (jpg/png).");
-      return;
-    }
-
-    setLoading(true);
-
-    const Tesseract = (await import("tesseract.js")).default;
-
-    Tesseract.recognize(file, "eng", { logger: (m) => console.log(m) })
-      .then(({ data: { text: extractedText } }) => {
-        setText((prev) => prev + "\n" + extractedText);
-      })
-      .finally(() => setLoading(false));
-  };
-
-  // Summarise notes
-  const handleSummarise = async () => {
-    if (!text) {
-      alert("Type notes or upload PDF/Image first.");
-      return;
-    }
-    setLoading(true);
-    setSummary("");
+    const botMessage = { type: "bot", content: "Processing..." };
+    setMessages((prev) => ({
+      ...prev,
+      [currentTopic]: [...(prev[currentTopic] || []), botMessage],
+    }));
 
     try {
       const res = await fetch("/api/summarise", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text: userMessage.content }),
       });
       const data = await res.json();
-      setSummary(data.summary || "No summary returned.");
+
+      setMessages((prev) => ({
+        ...prev,
+        [currentTopic]: prev[currentTopic].map((msg) =>
+          msg === botMessage ? { ...msg, content: data.summary || "No summary returned." } : msg
+        ),
+      }));
     } catch (err) {
-      setSummary("Error connecting to tutor.");
+      setMessages((prev) => ({
+        ...prev,
+        [currentTopic]: prev[currentTopic].map((msg) =>
+          msg === botMessage ? { ...msg, content: "Error connecting to tutor." } : msg
+        ),
+      }));
     }
 
     setLoading(false);
   };
 
   return (
-    <div style={{ maxWidth: "720px", margin: "40px auto", fontFamily: "sans-serif" }}>
-      <h1 style={{ textAlign: "center", marginBottom: "30px" }}>🇿🇲 Zambia AI Tutor</h1>
-
-      {/* Notes input */}
+    <div className={styles.appContainer}>
+      {/* Overlay for mobile */}
       <div
-        style={{
-          background: "#fff",
-          padding: "20px",
-          borderRadius: "12px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          marginBottom: "20px",
-        }}
-      >
-        <h3>Type or Paste Notes</h3>
+        className={`${styles.overlay} ${sidebarOpen ? styles.overlayVisible : ""}`}
+        onClick={() => setSidebarOpen(false)}
+      ></div>
+
+      {/* Header */}
+      <header className={styles.header}>
+        <button
+          className={styles.mobileToggle}
+          onClick={() => setSidebarOpen(true)}
+        >
+          ☰
+        </button>
+
+        <h1>Zambia AI Tutor</h1>
+
+        <div className={styles.accountHeader} onClick={() => alert("Account panel coming soon")}>
+          <span className={styles.accountStatus}>Free Plan</span>
+          <span className={styles.accountIcon}>👤</span>
+        </div>
+      </header>
+
+      <div className={styles.mainContent}>
+        {/* Sidebar */}
+        <ChatSidebar
+          topics={Object.keys(messages)}
+          currentTopic={currentTopic}
+          setCurrentTopic={setCurrentTopic}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          addTopic={(name) => setMessages((prev) => ({ ...prev, [name]: [] }))}
+        />
+
+        {/* Chat area */}
+        <div className={styles.chatArea}>
+          {(messages[currentTopic] || []).map((msg, idx) => (
+            <div
+              key={idx}
+              className={`${styles.chatMessage} ${msg.type === "user" ? styles.userMessage : styles.botMessage}`}
+            >
+              {msg.content}
+            </div>
+          ))}
+          <div ref={chatEndRef} />
+        </div>
+      </div>
+
+      {/* Input */}
+      <div className={styles.inputContainer}>
         <textarea
-          rows="6"
-          style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", resize: "vertical" }}
-          placeholder="Type or paste notes here..."
+          className={styles.textarea}
+          rows="2"
+          placeholder="Type or paste notes..."
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
-      </div>
-
-      {/* PDF upload */}
-      <div
-        style={{
-          background: "#fff",
-          padding: "20px",
-          borderRadius: "12px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          marginBottom: "20px",
-        }}
-      >
-        <h3>Upload PDF Notes</h3>
-        <input type="file" accept="application/pdf" onChange={handlePdfChange} />
-        {pdfFile && <p style={{ marginTop: "10px" }}>Selected file: {pdfFile.name}</p>}
-      </div>
-
-      {/* Image upload */}
-      <div
-        style={{
-          background: "#fff",
-          padding: "20px",
-          borderRadius: "12px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          marginBottom: "20px",
-        }}
-      >
-        <h3>Upload Image Notes</h3>
-        <input type="file" accept="image/*" onChange={handleImageChange} />
-        {imageFile && <p style={{ marginTop: "10px" }}>Selected file: {imageFile.name}</p>}
-      </div>
-
-      {/* Buttons */}
-      <div style={{ textAlign: "center", marginBottom: "20px" }}>
+        <label htmlFor="pdf-upload" className={styles.uploadButton}>
+          📄
+          <input
+            id="pdf-upload"
+            type="file"
+            accept="application/pdf"
+            style={{ display: "none" }}
+            onChange={(e) => setPdfFile(e.target.files[0])}
+          />
+        </label>
+        <label htmlFor="image-upload" className={styles.uploadButton}>
+          🖼️
+          <input
+            id="image-upload"
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => setImageFile(e.target.files[0])}
+          />
+        </label>
         <button
-          onClick={handleSummarise}
+          className={styles.sendButton}
+          onClick={handleSend}
           disabled={loading}
-          style={{
-            padding: "12px 24px",
-            marginRight: "12px",
-            borderRadius: "8px",
-            background: "#0070f3",
-            color: "#fff",
-            border: "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            transition: "background 0.2s",
-          }}
-          onMouseOver={(e) => (e.target.style.background = "#005bb5")}
-          onMouseOut={(e) => (e.target.style.background = "#0070f3")}
         >
-          {loading ? "Processing..." : "Summarise Notes"}
-        </button>
-        <button
-          style={{
-            padding: "12px 24px",
-            borderRadius: "8px",
-            background: "#e2e8f0",
-            border: "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-          onClick={() => alert("Flashcards coming soon")}
-        >
-          Flashcards
+          {loading ? "Processing..." : "Send"}
         </button>
       </div>
 
-      {/* Summary display */}
-      {summary && (
-        <div
-          style={{
-            background: "#f0f4f8",
-            padding: "20px",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-          }}
-        >
-          <h3>Summary</h3>
-          <p style={{ whiteSpace: "pre-wrap" }}>{summary}</p>
-        </div>
-      )}
+      {pdfFile && <PdfHandler file={pdfFile} setText={setText} />}
+      {imageFile && <ImageHandler file={imageFile} setText={setText} />}
     </div>
   );
 }
