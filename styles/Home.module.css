@@ -284,3 +284,52 @@ font-family: 'Inter', sans-serif; /* or any font you like */
   box-sizing: border-box; /* prevents overflow */
 }
 
+/* Sticky input at bottom */
+.stickyInputContainer {
+  position: sticky;
+  bottom: 0;
+  background-color: #2a2a2a; /* match header/input background */
+  padding: 10px 15px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid #333;
+  z-index: 20;
+}
+
+/* Bot message sections */
+.botSection {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(255,255,255,0.05);
+  color: #111;
+}
+
+/* Section types */
+.keyConcepts {
+  background-color: #fff7c0; /* light yellow */
+  border-left: 5px solid #facc15;
+}
+
+.examples {
+  background-color: #d1fae5; /* light green */
+  border-left: 5px solid #10b981;
+}
+
+.stepByStep {
+  background-color: #bfdbfe; /* light blue */
+  border-left: 5px solid #3b82f6;
+}
+
+.revisionTips {
+  background-color: #fecdd3; /* light pink */
+  border-left: 5px solid #f43f5e;
+}
+
+.botSection h3 {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 4px;
+}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import ChatSidebar from "../components/ChatSidebar";
 import styles from "../styles/Home.module.css";
+import ReactMarkdown from "react-markdown";
 
 const PdfHandler = dynamic(() => import("../components/PdfHandler"), { ssr: false });
 const ImageHandler = dynamic(() => import("../components/ImageHandler"), { ssr: false });
@@ -44,12 +45,14 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: userMessage.content }),
       });
+
       const data = await res.json();
+      const processedContent = data.summary || "No summary returned.";
 
       setMessages((prev) => ({
         ...prev,
         [currentTopic]: prev[currentTopic].map((msg) =>
-          msg === botMessage ? { ...msg, content: data.summary || "No summary returned." } : msg
+          msg === botMessage ? { ...msg, content: processedContent } : msg
         ),
       }));
     } catch (err) {
@@ -107,7 +110,11 @@ export default function Home() {
               key={idx}
               className={`${styles.chatMessage} ${msg.type === "user" ? styles.userMessage : styles.botMessage}`}
             >
-              {msg.content}
+              {msg.type === "bot" ? (
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              ) : (
+                msg.content
+              )}
             </div>
           ))}
           <div ref={chatEndRef} />
