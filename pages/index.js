@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import ChatSidebar from "../components/ChatSidebar";
 import styles from "../styles/Home.module.css";
-import ReactMarkdown from "react-markdown";
 
 const PdfHandler = dynamic(() => import("../components/PdfHandler"), { ssr: false });
 const ImageHandler = dynamic(() => import("../components/ImageHandler"), { ssr: false });
@@ -26,7 +28,7 @@ export default function Home() {
     if (!text.trim()) return;
 
     const userMessage = { type: "user", content: text };
-    setMessages((prev) => ({
+    setMessages(prev => ({
       ...prev,
       [currentTopic]: [...(prev[currentTopic] || []), userMessage],
     }));
@@ -34,7 +36,7 @@ export default function Home() {
     setLoading(true);
 
     const botMessage = { type: "bot", content: "Processing..." };
-    setMessages((prev) => ({
+    setMessages(prev => ({
       ...prev,
       [currentTopic]: [...(prev[currentTopic] || []), botMessage],
     }));
@@ -43,22 +45,24 @@ export default function Home() {
       const res = await fetch("/api/summarise", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: userMessage.content }),
+        body: JSON.stringify({
+          sessionId: currentTopic,
+          messages: [...(messages[currentTopic] || []), userMessage],
+        }),
       });
-
       const data = await res.json();
-      const processedContent = data.summary || "No summary returned.";
 
-      setMessages((prev) => ({
+      setMessages(prev => ({
         ...prev,
-        [currentTopic]: prev[currentTopic].map((msg) =>
-          msg === botMessage ? { ...msg, content: processedContent } : msg
+        [currentTopic]: prev[currentTopic].map(msg =>
+          msg === botMessage ? { ...msg, content: data.summary || "No response returned." } : msg
         ),
       }));
     } catch (err) {
-      setMessages((prev) => ({
+      console.error(err);
+      setMessages(prev => ({
         ...prev,
-        [currentTopic]: prev[currentTopic].map((msg) =>
+        [currentTopic]: prev[currentTopic].map(msg =>
           msg === botMessage ? { ...msg, content: "Error connecting to tutor." } : msg
         ),
       }));
@@ -83,9 +87,7 @@ export default function Home() {
         >
           ☰
         </button>
-
         <h1>Zambia AI Tutor</h1>
-
         <div className={styles.accountHeader} onClick={() => alert("Account panel coming soon")}>
           <span className={styles.accountStatus}>Free Plan</span>
           <span className={styles.accountIcon}>👤</span>
@@ -100,7 +102,9 @@ export default function Home() {
           setCurrentTopic={setCurrentTopic}
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
-          addTopic={(name) => setMessages((prev) => ({ ...prev, [name]: [] }))}
+          addTopic={(name) => {
+            if (!messages[name]) setMessages(prev => ({ ...prev, [name]: [] }));
+          }}
         />
 
         {/* Chat area */}
@@ -110,11 +114,12 @@ export default function Home() {
               key={idx}
               className={`${styles.chatMessage} ${msg.type === "user" ? styles.userMessage : styles.botMessage}`}
             >
-              {msg.type === "bot" ? (
-                <ReactMarkdown>{msg.content}</ReactMarkdown>
-              ) : (
-                msg.content
-              )}
+              <ReactMarkdown
+                remarkPlugins={[remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+              >
+                {msg.content}
+              </ReactMarkdown>
             </div>
           ))}
           <div ref={chatEndRef} />
@@ -164,3 +169,4 @@ export default function Home() {
     </div>
   );
 }
+
