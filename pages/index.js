@@ -1,9 +1,6 @@
-import { useState } from "react";
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
-import pdfWorker from "pdfjs-dist/build/pdf.worker.entry";
-import Tesseract from "tesseract.js";
+"use client"; // ensures Next.js treats this as a client component
 
-GlobalWorkerOptions.workerSrc = pdfWorker;
+import { useState } from "react";
 
 export default function Home() {
   const [text, setText] = useState("");
@@ -13,43 +10,56 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   // PDF upload handler
-  const handlePdfChange = (e) => {
+  const handlePdfChange = async (e) => {
     const file = e.target.files[0];
     setPdfFile(file);
-    if (file && file.type === "application/pdf") {
-      const reader = new FileReader();
-      reader.onload = async function () {
-        const typedArray = new Uint8Array(this.result);
-        const pdf = await getDocument(typedArray).promise;
-        let pdfText = "";
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          const strings = content.items.map((item) => item.str);
-          pdfText += strings.join(" ") + "\n";
-        }
-        setText((prev) => prev + "\n" + pdfText);
-      };
-      reader.readAsArrayBuffer(file);
-    } else {
+    if (!file || file.type !== "application/pdf") {
       alert("Please upload a valid PDF file.");
+      return;
     }
+
+    setLoading(true);
+
+    // Dynamic import to prevent server-side build errors
+    const { getDocument, GlobalWorkerOptions } = await import("pdfjs-dist");
+    GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.12.313/pdf.worker.min.js";
+
+    const reader = new FileReader();
+    reader.onload = async function () {
+      const typedArray = new Uint8Array(this.result);
+      const pdf = await getDocument(typedArray).promise;
+      let pdfText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const strings = content.items.map((item) => item.str);
+        pdfText += strings.join(" ") + "\n";
+      }
+      setText((prev) => prev + "\n" + pdfText);
+      setLoading(false);
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   // Image upload handler
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     setImageFile(file);
-    if (file && file.type.startsWith("image/")) {
-      setLoading(true);
-      Tesseract.recognize(file, "eng", { logger: (m) => console.log(m) })
-        .then(({ data: { text: extractedText } }) => {
-          setText((prev) => prev + "\n" + extractedText);
-        })
-        .finally(() => setLoading(false));
-    } else {
+    if (!file || !file.type.startsWith("image/")) {
       alert("Please upload an image file (jpg/png).");
+      return;
     }
+
+    setLoading(true);
+
+    const Tesseract = (await import("tesseract.js")).default;
+
+    Tesseract.recognize(file, "eng", { logger: (m) => console.log(m) })
+      .then(({ data: { text: extractedText } }) => {
+        setText((prev) => prev + "\n" + extractedText);
+      })
+      .finally(() => setLoading(false));
   };
 
   // Summarise notes
@@ -81,7 +91,15 @@ export default function Home() {
       <h1 style={{ textAlign: "center", marginBottom: "30px" }}>🇿🇲 Zambia AI Tutor</h1>
 
       {/* Notes input */}
-      <div style={{ background: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", marginBottom: "20px" }}>
+      <div
+        style={{
+          background: "#fff",
+          padding: "20px",
+          borderRadius: "12px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          marginBottom: "20px",
+        }}
+      >
         <h3>Type or Paste Notes</h3>
         <textarea
           rows="6"
@@ -93,14 +111,30 @@ export default function Home() {
       </div>
 
       {/* PDF upload */}
-      <div style={{ background: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", marginBottom: "20px" }}>
+      <div
+        style={{
+          background: "#fff",
+          padding: "20px",
+          borderRadius: "12px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          marginBottom: "20px",
+        }}
+      >
         <h3>Upload PDF Notes</h3>
         <input type="file" accept="application/pdf" onChange={handlePdfChange} />
         {pdfFile && <p style={{ marginTop: "10px" }}>Selected file: {pdfFile.name}</p>}
       </div>
 
       {/* Image upload */}
-      <div style={{ background: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", marginBottom: "20px" }}>
+      <div
+        style={{
+          background: "#fff",
+          padding: "20px",
+          borderRadius: "12px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          marginBottom: "20px",
+        }}
+      >
         <h3>Upload Image Notes</h3>
         <input type="file" accept="image/*" onChange={handleImageChange} />
         {imageFile && <p style={{ marginTop: "10px" }}>Selected file: {imageFile.name}</p>}
@@ -120,7 +154,7 @@ export default function Home() {
             border: "none",
             cursor: "pointer",
             fontWeight: "bold",
-            transition: "background 0.2s"
+            transition: "background 0.2s",
           }}
           onMouseOver={(e) => (e.target.style.background = "#005bb5")}
           onMouseOut={(e) => (e.target.style.background = "#0070f3")}
@@ -134,7 +168,7 @@ export default function Home() {
             background: "#e2e8f0",
             border: "none",
             cursor: "pointer",
-            fontWeight: "bold"
+            fontWeight: "bold",
           }}
           onClick={() => alert("Flashcards coming soon")}
         >
@@ -144,7 +178,14 @@ export default function Home() {
 
       {/* Summary display */}
       {summary && (
-        <div style={{ background: "#f0f4f8", padding: "20px", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+        <div
+          style={{
+            background: "#f0f4f8",
+            padding: "20px",
+            borderRadius: "12px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+          }}
+        >
           <h3>Summary</h3>
           <p style={{ whiteSpace: "pre-wrap" }}>{summary}</p>
         </div>
