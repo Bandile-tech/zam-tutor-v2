@@ -2,8 +2,7 @@
 import { useEffect } from "react";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 
-GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.12.313/pdf.worker.min.js";
+GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${require('pdfjs-dist/package.json').version}/build/pdf.worker.min.js`;
 
 export default function PdfHandler({ file, setText }) {
   useEffect(() => {

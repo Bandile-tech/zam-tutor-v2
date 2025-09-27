@@ -1,4 +1,3 @@
-G
 import { useState, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import ReactMarkdown from "react-markdown";
@@ -28,10 +27,13 @@ export default function Home() {
   const handleSend = async () => {
     if (!text.trim()) return;
 
+    // Capture the current topic to prevent message mix-ups if user switches topics during API call
+    const topicKey = currentTopic;
+    
     const userMessage = { type: "user", content: text };
     setMessages(prev => ({
       ...prev,
-      [currentTopic]: [...(prev[currentTopic] || []), userMessage],
+      [topicKey]: [...(prev[topicKey] || []), userMessage],
     }));
     setText("");
     setLoading(true);
@@ -39,7 +41,7 @@ export default function Home() {
     const botMessage = { type: "bot", content: "Processing..." };
     setMessages(prev => ({
       ...prev,
-      [currentTopic]: [...(prev[currentTopic] || []), botMessage],
+      [topicKey]: [...(prev[topicKey] || []), botMessage],
     }));
 
     try {
@@ -47,15 +49,15 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessionId: currentTopic,
-          messages: [...(messages[currentTopic] || []), userMessage],
+          sessionId: topicKey,
+          messages: [...(messages[topicKey] || []), userMessage],
         }),
       });
       const data = await res.json();
 
       setMessages(prev => ({
         ...prev,
-        [currentTopic]: prev[currentTopic].map(msg =>
+        [topicKey]: prev[topicKey].map(msg =>
           msg === botMessage ? { ...msg, content: data.summary || "No response returned." } : msg
         ),
       }));
@@ -63,7 +65,7 @@ export default function Home() {
       console.error(err);
       setMessages(prev => ({
         ...prev,
-        [currentTopic]: prev[currentTopic].map(msg =>
+        [topicKey]: prev[topicKey].map(msg =>
           msg === botMessage ? { ...msg, content: "Error connecting to tutor." } : msg
         ),
       }));
