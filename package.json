@@ -9,11 +9,13 @@
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
+    "framer-motion": "^12.23.22",
     "katex": "^0.16.22",
     "next": "^14.2.32",
     "openai": "^4.12.0",
     "pdfjs-dist": "^5.4.149",
     "react": "^18.2.0",
+    "react-confetti": "^6.4.0",
     "react-dom": "^18.2.0",
     "react-katex": "^3.1.0",
     "react-markdown": "^10.1.0",
