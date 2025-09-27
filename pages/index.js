@@ -1,3 +1,4 @@
+G
 import { useState, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import ReactMarkdown from "react-markdown";
