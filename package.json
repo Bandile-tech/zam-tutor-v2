@@ -8,6 +8,7 @@
     "start": "next start -H 0.0.0.0 -p 5000"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
     "@vercel/analytics": "^1.5.0",
     "framer-motion": "^12.23.22",
     "katex": "^0.16.22",
