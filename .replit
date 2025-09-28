@@ -5,7 +5,7 @@ integrations = ["javascript_openai:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["lsof"]
+packages = ["lsof", "psmisc"]
 
 [workflows]
 runButton = "Project"

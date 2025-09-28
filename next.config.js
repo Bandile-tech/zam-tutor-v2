@@ -21,7 +21,7 @@ const nextConfig = {
   // Fix cross-origin dev warnings in Next.js 14+
   allowedDevOrigins: [
     'https://janeway.replit.dev', // Replit dev URL
-    'http://localhost:3000',       // Local development
+    'https://*.replit.dev', 'http://localhost:5000',// Local development
   ],
 };
 
