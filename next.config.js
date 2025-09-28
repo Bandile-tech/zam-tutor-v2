@@ -1,10 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configure for Replit environment
+  reactStrictMode: true, // optional but recommended
+
+  // Rewrites (empty for now, can add later)
   async rewrites() {
     return [];
   },
-  // Allow all hosts since Replit uses a proxy
+
+  // Headers to allow framing, etc.
   async headers() {
     return [
       {
@@ -18,11 +21,9 @@ const nextConfig = {
       },
     ];
   },
-  // Fix cross-origin dev warnings in Next.js 14+
-  allowedDevOrigins: [
-    'https://janeway.replit.dev', // Replit dev URL
-    'https://*.replit.dev', 'http://localhost:5000',// Local development
-  ],
+
+  // Allow cross-origin requests from Replit dev URLs
+  allowedDevOrigins: 'https://*.replit.dev', // single string only
 };
 
 module.exports = nextConfig;
