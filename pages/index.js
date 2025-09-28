@@ -11,12 +11,14 @@ export default function Home() {
   const [progress, setProgress] = useState(40);
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-x-hidden">
+    <div className="min-h-screen flex flex-col relative overflow-x-hidden bg-gray-50">
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-200 via-blue-100 to-pink-200 animate-[pulse_10s_infinite] -z-10"></div>
 
+      {/* Header */}
       <Header />
 
+      {/* Main content */}
       <main className="flex-1 relative z-10 p-4 space-y-6">
         <SubjectSelector onSelect={setSelectedSubject} />
         {selectedSubject && <TutorChat subject={selectedSubject} />}
@@ -24,6 +26,7 @@ export default function Home() {
         <CallToAction />
       </main>
 
+      {/* Footer */}
       <Footer />
     </div>
   );
