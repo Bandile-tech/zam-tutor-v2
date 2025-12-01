@@ -1,9 +1,14 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #6366f1;
+  --color-secondary: #8b5cf6;
+  --color-accent: #ec4899;
+}
 
 /* Optional custom global styles */
 body {
-  @apply bg-gray-50 text-gray-800;
+  background-color: #f9fafb;
+  color: #1f2937;
   font-family: 'Inter', sans-serif;
 }

@@ -1,4 +1,3 @@
-import '../styles/globals.css';
 import { useState } from "react";
 import Header from "../components/Header";
 import SubjectSelector from "../components/SubjectSelector";
